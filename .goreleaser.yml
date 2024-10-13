@@ -1,0 +1,79 @@
+version: 2
+
+env:
+  - GO111MODULE=on
+  - GOPROXY=https://gocenter.io
+  - LOCAL_ORG={{ .Env.LOCAL_ORG }}
+
+builds:
+  - id: gook
+    binary: gook
+    env:
+      - CGO_ENABLED=0
+      - GO111MODULE=on
+    # Custom ldflags templates.
+    # Default is `-s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser`.
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+release:
+  # Repo in which the release will be created.
+  # Default is extracted from the origin remote URL or empty if its private hosted.
+  header: |
+    ## GOOK (v{{.Version}})
+    ### Installation from released binaries
+    Install by downloading one of the pre-compiled binaries (replace `amd64` with `arm64` for ARM-compatible binaries)
+    ```
+    # MacOS
+    sudo curl -L "https://github.com/{{ .Env.LOCAL_ORG }}/gook/releases/download/v{{.Version}}/gook-v{{.Version}}-darwin-amd64" -o /usr/local/bin/gook && sudo chmod +x /usr/local/bin/gook
+    # Linux
+    sudo curl -L "https://github.com/{{ .Env.LOCAL_ORG }}/gook/releases/download/v{{.Version}}/gook-v{{.Version}}-linux-amd64" -o /usr/local/bin/gook && sudo chmod +x /usr/local/bin/gook
+    ```
+    ### Running from a Dockerfile
+    Alternatively, you may download the latest release as a Dockerfile from [GitHub](https://github.com/{{ .Env.LOCAL_ORG }}/gook/pkgs/container/gook) or [Docker Hub](https://hub.docker.com/r/{{ .Env.LOCAL_ORG }}/gook)
+    ```
+    docker pull ghcr.io/{{ .Env.LOCAL_ORG }}/gook:{{.Version}}
+    docker pull docker.io/{{ .Env.LOCAL_ORG }}/gook:{{.Version}}
+    ```
+  # Defaults to empty.
+  name_template: "v{{.Version}}"
+
+archives:
+  - id: binaries
+    builds:
+    - gook
+    format: binary
+    name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    wrap_in_directory: true
+    files:
+      - none*
+  - id: binaries-targz
+    builds:
+      - gook
+    format: tar.gz
+    name_template: "{{ .ProjectName }}-v{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    wrap_in_directory: true
+
+source:
+  enabled: true
+  format: 'tar.gz'
+  name_template: "{{ .ProjectName }}-v{{ .Version }}-source"
+
+checksum:
+  name_template: 'checksums.txt'
+  algorithm: sha256
+
+  # signs:
+#   - artifacts: checksum
+#     args: ["--batch", "-u", "{{ .Env.GPG_FINGERPRINT }}", "--output", "${signature}", "--detach-sign", "${artifact}"]
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
